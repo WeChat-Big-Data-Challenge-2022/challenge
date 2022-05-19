@@ -59,10 +59,9 @@ class MultiModalDataset(Dataset):
         self.bert_seq_length = args.bert_seq_length
         self.test_mode = test_mode
 
-        # load zip features
-        self.handles = []
-        for i in range(args.num_workers):
-            self.handles.append(zipfile.ZipFile(zip_feats, 'r'))
+        # lazy initialization for zip_handler to avoid multiprocessing-reading error
+        self.zip_feat_path = zip_feats
+        self.handles = [None for _ in range(args.num_workers)]
 
         # load annotations
         with open(ann_path, 'r', encoding='utf8') as f:
@@ -77,6 +76,8 @@ class MultiModalDataset(Dataset):
     def get_visual_feats(self, worker_id, idx: int) -> tuple:
         # read data from zipfile
         vid = self.anns[idx]['id']
+        if self.handles[worker_id] is None:
+            self.handles[worker_id] = zipfile.ZipFile(self.zip_feat_path, 'r')
         raw_feats = np.load(BytesIO(self.handles[worker_id].read(name=f'{vid}.npy')), allow_pickle=True)
         raw_feats = raw_feats.astype(np.float32)  # float16 to float32
         num_frames, feat_dim = raw_feats.shape

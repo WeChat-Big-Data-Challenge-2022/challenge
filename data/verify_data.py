@@ -2,12 +2,12 @@ import hashlib
 import os
 
 CHECKSUM_MAP = {
-    'annotations/labeled.json': '49f674dd3d738fc46f66a6548dce7ba5',
-    'annotations/test_a.json': '8888045bd6b67533599cadc05a52a3b4',
-    'annotations/unlabeled.json': '6ffb2fa1f729071aff52651b24f90f39',
-    'zip_feats/labeled.zip': '4609a40b0df91e51bc713527de920b00',
-    'zip_feats/test_a.zip': '531cf10c1ded29799c98324f36d9e90a',
-    'zip_feats/unlabeled.zip': '732f649429250f35476a11d01e0b5258',
+    'annotations/labeled.json': '400d0efb8f2b50d6f41d0b2b4890025f',
+    'annotations/test_a.json': '97cdc225a90efcb3a3a279f90a209d61',
+    'annotations/unlabeled.json': '2c59fb2fdd2abce565f499fef9f8263d',
+    'zip_feats/labeled.zip': '147dac81280075dc862fe45fe1475306',
+    'zip_feats/test_a.zip': '9f30188a1f25ef971cf04e58b51ca999',
+    'zip_feats/unlabeled.zip': '16c6cb4c3873dbbab918572727590b60',
 }
 
 
