@@ -22,9 +22,10 @@ def inference():
 
     # 2. load model
     model = MultiModal(args)
-    checkpoint = torch.load(args.ckpt_file)
+    checkpoint = torch.load(args.ckpt_file, map_location='cpu')
     model.load_state_dict(checkpoint['model_state_dict'])
-    model = torch.nn.parallel.DataParallel(model.cuda())
+    if torch.cuda.is_available():
+        model = torch.nn.parallel.DataParallel(model.cuda())
     model.eval()
 
     # 3. inference
