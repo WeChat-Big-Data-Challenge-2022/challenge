@@ -39,6 +39,7 @@ python main.py
 ### 生成提交文件
 ```python
 # 在config.py中配置ckpt_file地址后，即可运行
+# 生成的结果默认存放在 data/result.csv 位置
 python inference.py
 ```
 
