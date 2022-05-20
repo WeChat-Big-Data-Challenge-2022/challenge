@@ -109,10 +109,8 @@ class MultiModalDataset(Dataset):
 
     def tokenize_text(self, text: str) -> tuple:
         encoded_inputs = self.tokenizer(text, max_length=self.bert_seq_length, padding='max_length', truncation=True)
-        input_ids = np.array(encoded_inputs['input_ids'])
-        mask = np.array(encoded_inputs['attention_mask'])
-        input_ids = torch.LongTensor(input_ids)
-        mask = torch.LongTensor(mask)
+        input_ids = torch.LongTensor(encoded_inputs['input_ids'])
+        mask = torch.LongTensor(encoded_inputs['attention_mask'])
         return input_ids, mask
 
     def __getitem__(self, idx: int) -> dict:
