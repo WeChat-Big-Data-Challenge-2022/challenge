@@ -70,7 +70,8 @@ def train_and_validate(args):
         mean_f1 = results['mean_f1']
         if mean_f1 > best_score:
             best_score = mean_f1
-            torch.save({'epoch': epoch, 'model_state_dict': model.module.state_dict(), 'mean_f1': mean_f1},
+            state_dict = model.module.state_dict() if args.device == 'cuda' else model.state_dict()
+            torch.save({'epoch': epoch, 'model_state_dict': state_dict, 'mean_f1': mean_f1},
                        f'{args.savedmodel_path}/model_epoch_{epoch}_mean_f1_{mean_f1}.bin')
 
 
