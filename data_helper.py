@@ -2,6 +2,7 @@ import json
 import random
 import zipfile
 from io import BytesIO
+from functools import partial
 
 import numpy as np
 import torch
@@ -18,32 +19,30 @@ def create_dataloaders(args):
     train_dataset, val_dataset = torch.utils.data.random_split(dataset, [size - val_size, val_size],
                                                                generator=torch.Generator().manual_seed(args.seed))
 
+    if args.num_workers > 0:
+        dataloader_class = partial(DataLoader, pin_memory=True, num_workers=args.num_workers, prefetch_factor=args.prefetch)
+    else:
+        # single-thread reading does not support prefetch_factor arg
+        dataloader_class = partial(DataLoader, pin_memory=True, num_workers=0)
+
     train_sampler = RandomSampler(train_dataset)
     val_sampler = SequentialSampler(val_dataset)
-    train_dataloader = DataLoader(train_dataset,
-                                  batch_size=args.batch_size,
-                                  sampler=train_sampler,
-                                  drop_last=True,
-                                  pin_memory=True,
-                                  num_workers=args.num_workers,
-                                  prefetch_factor=args.prefetch)
-    val_dataloader = DataLoader(val_dataset,
-                                batch_size=args.val_batch_size,
-                                sampler=val_sampler,
-                                drop_last=False,
-                                pin_memory=True,
-                                num_workers=args.num_workers,
-                                prefetch_factor=args.prefetch)
+    train_dataloader = dataloader_class(train_dataset,
+                                        batch_size=args.batch_size,
+                                        sampler=train_sampler,
+                                        drop_last=True)
+    val_dataloader = dataloader_class(val_dataset,
+                                      batch_size=args.val_batch_size,
+                                      sampler=val_sampler,
+                                      drop_last=False)
     return train_dataloader, val_dataloader
 
 
 class MultiModalDataset(Dataset):
     """ A simple class that supports multi-modal inputs.
-
     For the visual features, this dataset class will read the pre-extracted
     features from the .npy files. For the title information, it
     uses the BERT tokenizer to tokenize. We simply ignore the ASR & OCR text in this implementation.
-
     Args:
         ann_path (str): annotation file path, with the '.json' suffix.
         zip_feats (str): visual feature zip file path.
@@ -59,26 +58,33 @@ class MultiModalDataset(Dataset):
         self.bert_seq_length = args.bert_seq_length
         self.test_mode = test_mode
 
-        # lazy initialization for zip_handler to avoid multiprocessing-reading error
         self.zip_feat_path = zip_feats
-        self.handles = [None for _ in range(args.num_workers)]
-
+        self.num_workers = args.num_workers
+        if self.num_workers > 0:
+            # lazy initialization for zip_handler to avoid multiprocessing-reading error
+            self.handles = [None for _ in range(args.num_workers)]
+        else:
+            self.handles = zipfile.ZipFile(self.zip_feat_path, 'r')
         # load annotations
         with open(ann_path, 'r', encoding='utf8') as f:
             self.anns = json.load(f)
-
         # initialize the text tokenizer
         self.tokenizer = BertTokenizer.from_pretrained(args.bert_dir, use_fast=True, cache_dir=args.bert_cache)
 
     def __len__(self) -> int:
         return len(self.anns)
 
-    def get_visual_feats(self, worker_id, idx: int) -> tuple:
+    def get_visual_feats(self, idx: int) -> tuple:
         # read data from zipfile
         vid = self.anns[idx]['id']
-        if self.handles[worker_id] is None:
-            self.handles[worker_id] = zipfile.ZipFile(self.zip_feat_path, 'r')
-        raw_feats = np.load(BytesIO(self.handles[worker_id].read(name=f'{vid}.npy')), allow_pickle=True)
+        if self.num_workers > 0:
+            worker_id = torch.utils.data.get_worker_info().id
+            if self.handles[worker_id] is None:
+                self.handles[worker_id] = zipfile.ZipFile(self.zip_feat_path, 'r')
+            handle = self.handles[worker_id]
+        else:
+            handle = self.handles
+        raw_feats = np.load(BytesIO(handle.read(name=f'{vid}.npy')), allow_pickle=True)
         raw_feats = raw_feats.astype(np.float32)  # float16 to float32
         num_frames, feat_dim = raw_feats.shape
 
@@ -115,8 +121,7 @@ class MultiModalDataset(Dataset):
 
     def __getitem__(self, idx: int) -> dict:
         # Step 1, load visual features from zipfile.
-        worker_info = torch.utils.data.get_worker_info()
-        frame_input, frame_mask = self.get_visual_feats(worker_info.id, idx)
+        frame_input, frame_mask = self.get_visual_feats(idx)
 
         # Step 2, load title tokens
         title_input, title_mask = self.tokenize_text(self.anns[idx]['title'])
