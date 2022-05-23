@@ -47,7 +47,7 @@ def verify_data(data_dir):
 
 
 if __name__ == '__main__':
-    missing, failed = verify_data('./')
+    missing, failed = verify_data('../../data')
     if missing or failed:
         print(f'Verification FAILED, please retry downloading: {missing + failed}')
     else:
