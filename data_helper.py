@@ -111,6 +111,8 @@ class MultiModalDataset(Dataset):
                 feat[i] = raw_feats[j]
         feat = torch.FloatTensor(feat)
         mask = torch.LongTensor(mask)
+        
+        # feat shape = (max_frames, feat_dim),max_frames最大是32帧， mask shape = (max_frames)，由0， 1组成
         return feat, mask
 
     def tokenize_text(self, text: str) -> tuple:
@@ -121,6 +123,7 @@ class MultiModalDataset(Dataset):
 
     def __getitem__(self, idx: int) -> dict:
         # Step 1, load visual features from zipfile.
+        # frame_input shape = (max_frames, feat_dim), frame_mask shape = (max_frames)
         frame_input, frame_mask = self.get_visual_feats(idx)
 
         # Step 2, load title tokens

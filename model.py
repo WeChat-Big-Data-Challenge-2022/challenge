@@ -16,10 +16,11 @@ class MultiModal(nn.Module):
         bert_output_size = 768
         self.fusion = ConcatDenseSE(args.vlad_hidden_size + bert_output_size, args.fc_size, args.se_ratio, args.dropout)
         self.classifier = nn.Linear(args.fc_size, len(CATEGORY_ID_LIST))
+        self.dropout = nn.Dropout(args.dropout)
 
     def forward(self, inputs, inference=False):
         bert_embedding = self.bert(inputs['title_input'], inputs['title_mask'])['pooler_output']
-
+        
         vision_embedding = self.nextvlad(inputs['frame_input'], inputs['frame_mask'])
         vision_embedding = self.enhance(vision_embedding)
 

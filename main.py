@@ -2,20 +2,22 @@ import logging
 import os
 import time
 import torch
+import json
 
 from config import parse_args
 from data_helper import create_dataloaders
 from model import MultiModal
-from util import setup_device, setup_seed, setup_logging, build_optimizer, evaluate
+from util import setup_device, setup_seed, setup_logging, build_optimizer, evaluate, convert_to_gpu
 
 
-def validate(model, val_dataloader):
+def validate(model, val_dataloader, args):
     model.eval()
     predictions = []
     labels = []
     losses = []
     with torch.no_grad():
         for batch in val_dataloader:
+            batch = convert_to_gpu(batch, args.device)
             loss, _, pred_label_id, label = model(batch)
             loss = loss.mean()
             predictions.extend(pred_label_id.cpu().numpy())
@@ -35,9 +37,12 @@ def train_and_validate(args):
     # 2. build model and optimizers
     model = MultiModal(args)
     optimizer, scheduler = build_optimizer(args, model)
-    if args.device == 'cuda':
-        model = torch.nn.parallel.DataParallel(model.to(args.device))
-
+    # if args.device == 'cuda':
+    #     model = torch.nn.parallel.DataParallel(model.to(args.device))
+    
+    if args.device:
+        model = model.to(args.device)
+    
     # 3. training
     step = 0
     best_score = args.best_score
@@ -45,6 +50,7 @@ def train_and_validate(args):
     num_total_steps = len(train_dataloader) * args.max_epochs
     for epoch in range(args.max_epochs):
         for batch in train_dataloader:
+            batch = convert_to_gpu(batch, args.device)
             model.train()
             loss, accuracy, _, _ = model(batch)
             loss = loss.mean()
@@ -60,9 +66,9 @@ def train_and_validate(args):
                 remaining_time = time_per_step * (num_total_steps - step)
                 remaining_time = time.strftime('%H:%M:%S', time.gmtime(remaining_time))
                 logging.info(f"Epoch {epoch} step {step} eta {remaining_time}: loss {loss:.3f}, accuracy {accuracy:.3f}")
-
+        
         # 4. validation
-        loss, results = validate(model, val_dataloader)
+        loss, results = validate(model, val_dataloader, args)
         results = {k: round(v, 4) for k, v in results.items()}
         logging.info(f"Epoch {epoch} step {step}: loss {loss:.3f}, {results}")
 
@@ -82,7 +88,7 @@ def main():
     setup_seed(args)
 
     os.makedirs(args.savedmodel_path, exist_ok=True)
-    logging.info("Training/evaluation parameters: %s", args)
+    logging.info("Training/evaluation parameters: %s", json.dumps(vars(args), indent=4))
 
     train_and_validate(args)
 

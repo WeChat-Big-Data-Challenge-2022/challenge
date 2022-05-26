@@ -9,8 +9,17 @@ from transformers import AdamW, get_linear_schedule_with_warmup
 from category_id_map import lv2id_to_lv1id
 
 
+def convert_to_gpu(batch, device):
+    """
+        batch: {"": tensor, "": tensor, ..., }
+    """
+    for key in batch:
+        batch[key] = batch[key].to(device)
+    return batch
+
+
 def setup_device(args):
-    args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    args.device = 'cuda:3' if torch.cuda.is_available() else 'cpu'
     args.n_gpu = torch.cuda.device_count()
 
 
