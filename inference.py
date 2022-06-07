@@ -7,11 +7,12 @@ from config import parse_args
 from data_helper import MultiModalDataset
 from category_id_map import lv2id_to_category_id
 from model import MultiModal
-from util import convert_to_gpu, setup_device
+from util import convert_to_gpu, setup_device, setup_logging
 
 
 def inference():
     args = parse_args()
+    setup_logging()
     setup_device(args)
     logging.info("Inference hyper parameters: %s", json.dumps(vars(args), indent=4))
     # 1. load data

@@ -38,6 +38,32 @@ def create_dataloaders(args):
     return train_dataloader, val_dataloader
 
 
+def create_pretrain_dataloaders(args):
+    dataset = MultiModalDataset(args, args.pretrain_annotation, args.pretrain_zip_feats, test_mode=True)
+    size = len(dataset)
+    val_size = int(size * args.val_ratio)
+    train_dataset, val_dataset = torch.utils.data.random_split(dataset, [size - val_size, val_size],
+                                                               generator=torch.Generator().manual_seed(args.seed))
+
+    if args.num_workers > 0:
+        dataloader_class = partial(DataLoader, pin_memory=True, num_workers=args.num_workers, prefetch_factor=args.prefetch)
+    else:
+        # single-thread reading does not support prefetch_factor arg
+        dataloader_class = partial(DataLoader, pin_memory=True, num_workers=0)
+
+    train_sampler = RandomSampler(train_dataset)
+    val_sampler = SequentialSampler(val_dataset)
+    train_dataloader = dataloader_class(train_dataset,
+                                        batch_size=args.batch_size,
+                                        sampler=train_sampler,
+                                        drop_last=True)
+    val_dataloader = dataloader_class(val_dataset,
+                                      batch_size=args.val_batch_size,
+                                      sampler=val_sampler,
+                                      drop_last=False)
+    return train_dataloader, val_dataloader
+
+
 class MultiModalDataset(Dataset):
     """ A simple class that supports multi-modal inputs.
     For the visual features, this dataset class will read the pre-extracted
@@ -120,21 +146,40 @@ class MultiModalDataset(Dataset):
         input_ids = torch.LongTensor(encoded_inputs['input_ids'])
         mask = torch.LongTensor(encoded_inputs['attention_mask'])
         return input_ids, mask
-
+    
+    def tolenize_ocr(self, ocrs: list) -> tuple:
+        """
+        :ocrs: [{"time": 1, "text": "山西融媒12月21日安徽安"}, {}, ..., {}]
+        """
+        text = ''
+        for ocr in ocrs:
+            text += ocr["text"]
+        encoded_inputs = self.tokenizer(text, max_length=2*self.bert_seq_length, padding='max_length', truncation=True)
+        input_ids = torch.LongTensor(encoded_inputs['input_ids'])
+        mask = torch.LongTensor(encoded_inputs['attention_mask'])
+        return input_ids, mask
+            
+    
     def __getitem__(self, idx: int) -> dict:
         # Step 1, load visual features from zipfile.
         # frame_input shape = (max_frames, feat_dim), frame_mask shape = (max_frames)
         frame_input, frame_mask = self.get_visual_feats(idx)
 
-        # Step 2, load title tokens
+        # Step 2, load text tokens, e.g title, asr, ocr
         title_input, title_mask = self.tokenize_text(self.anns[idx]['title'])
+        asr_input, asr_mask = self.tokenize_text(self.anns[idx]['asr'])
+        ocr_input, ocr_mask = self.tolenize_ocr(self.anns[idx]['ocr'])
 
         # Step 3, summarize into a dictionary
         data = dict(
             frame_input=frame_input,
             frame_mask=frame_mask,
             title_input=title_input,
-            title_mask=title_mask
+            title_mask=title_mask,
+            asr_input=asr_input,
+            asr_mask=asr_mask,
+            ocr_input=ocr_input,
+            ocr_mask=ocr_mask
         )
 
         # Step 4, load label if not test mode

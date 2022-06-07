@@ -39,11 +39,15 @@ def train_and_validate(args):
     optimizer, scheduler = build_optimizer(args, model)
     # if args.device == 'cuda':
     #     model = torch.nn.parallel.DataParallel(model.to(args.device))
+    if args.use_pretrain == "use":
+        pretrain_model = torch.load(args.pretrain_ckpt_file, map_location=torch.device('cpu'))
+        model.load_state_dict(pretrain_model['model_state_dict'], strict=False)
     
     if args.device:
         model = model.to(args.device)
     
     # 3. training
+    flag = 0
     step = 0
     best_score = args.best_score
     start_time = time.time()
@@ -66,20 +70,24 @@ def train_and_validate(args):
                 remaining_time = time_per_step * (num_total_steps - step)
                 remaining_time = time.strftime('%H:%M:%S', time.gmtime(remaining_time))
                 logging.info(f"Epoch {epoch} step {step} eta {remaining_time}: loss {loss:.3f}, accuracy {accuracy:.3f}")
-        
+            
         # 4. validation
         loss, results = validate(model, val_dataloader, args)
         results = {k: round(v, 4) for k, v in results.items()}
         logging.info(f"Epoch {epoch} step {step}: loss {loss:.3f}, {results}")
 
         # 5. save checkpoint
+        flag += 1
         mean_f1 = results['mean_f1']
         if mean_f1 > best_score:
+            flag = 0
             best_score = mean_f1
             state_dict = model.module.state_dict() if args.device == 'cuda' else model.state_dict()
             torch.save({'epoch': epoch, 'model_state_dict': state_dict, 'mean_f1': mean_f1},
                        f'{args.savedmodel_path}/model_epoch_{epoch}_mean_f1_{mean_f1}.bin')
-
+        if flag >= 5:
+            logging.info(f"Epoch {epoch} early stopping!")
+            break
 
 def main():
     args = parse_args()

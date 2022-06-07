@@ -19,12 +19,12 @@ def convert_to_gpu(batch, device):
 
 
 def setup_device(args):
-    args.device = 'cuda:3' if torch.cuda.is_available() else 'cpu'
+    args.device = 'cuda:2' if torch.cuda.is_available() else 'cpu'
     args.n_gpu = torch.cuda.device_count()
 
 
 def setup_seed(args):
-    random.seed(args.seed)
+    random.seed(args.seed) 
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
@@ -40,6 +40,7 @@ def setup_logging():
 
 def build_optimizer(args, model):
     # Prepare optimizer and schedule (linear warmup and decay)
+    # 所有带no_decay的参数不添加weight_decay；
     no_decay = ['bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
         {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
