@@ -9,9 +9,9 @@ def parse_args():
 
     # ========================= Data Configs ==========================
     parser.add_argument('--train_annotation', type=str, default='data/annotations/labeled.json')
-    parser.add_argument('--test_annotation', type=str, default='data/annotations/test_a.json')
+    parser.add_argument('--test_annotation', type=str, default='data/annotations/test_b.json')
     parser.add_argument('--train_zip_feats', type=str, default='data/zip_feats/labeled.zip')
-    parser.add_argument('--test_zip_feats', type=str, default='data/zip_feats/test_a.zip')
+    parser.add_argument('--test_zip_feats', type=str, default='data/zip_feats/test_b.zip')
     parser.add_argument('--test_output_csv', type=str, default='data/result.csv')
     parser.add_argument('--val_ratio', default=0.1, type=float, help='split 10 percentages of training data as validation')
     parser.add_argument('--batch_size', default=64, type=int, help="use for training duration per worker")
