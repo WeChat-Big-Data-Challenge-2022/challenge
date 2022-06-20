@@ -5,7 +5,7 @@
 北京时间2022年6月26日中午12:00，逾期未提交的队伍将取消复赛资格
 
 ### 2. 提交方法
-将代码整理为本文档要求的目录结构，提交到 https://code.tencent.com 上, 将提交代码仓库设置为私有，并加入Wechat-Big-Data-Challenge-2022到协作项目组中，设置权限为developer
+将代码整理为本文档要求的目录结构，提交到 https://code.tencent.com 上, 将提交代码仓库设置为私有，添加 Wechat-Big-Data-Challenge-2022 用户到项目成员中，并赋予 Developer 权限。
 
 ### 3. 项目命名格式
 wbdc2022-preliminary-队伍ID
