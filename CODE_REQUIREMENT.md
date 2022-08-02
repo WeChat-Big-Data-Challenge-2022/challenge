@@ -13,8 +13,9 @@
 复赛代码提交采用 docker 镜像的方式。选手将训练、测试代码打包至 docker 镜像中，并推送到本队伍账号下的镜像仓库中。
 
 提交的 docker 镜像请命名为：tione-wxdsj.tencentcloudcr.com/team-1000xxxxxx/team-xxx:lastsubmit
-其中 team-1000xxxxxx 为队伍12位的 id （与复赛阶段提交测试 docker 一致）
-镜像名 team-xxx 为三位数字id，001-100
+
+其中 `team-1000xxxxxx` 为队伍12位的 id （与复赛阶段提交测试 docker 一致）。
+镜像名 `team-xxx` 为三位数字id，001-100
 
 **注意**：复现的 docker 需要包含训练代码，无需包含推理模型的权重。
 
