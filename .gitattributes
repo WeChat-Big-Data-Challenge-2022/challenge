@@ -1,0 +1,4 @@
+opensource_models/swin_tiny_patch4_window7_224.pth filter=lfs diff=lfs merge=lfs -text
+opensource_models/chinese-macbert-base/pytorch_model.bin filter=lfs diff=lfs merge=lfs -text
+opensource_models/chinese-macbert-base/vocab.txt filter=lfs diff=lfs merge=lfs -text
+opensource_models/chinese-macbert-base/tokenizer.json filter=lfs diff=lfs merge=lfs -text
